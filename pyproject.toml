@@ -1,0 +1,70 @@
+[project]
+name = "runthrough"
+version = "0.0.1"
+description = "Evaluate deployed chat agents with simulated users. An Inspect AI extension."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Anush Deokar" }]
+requires-python = ">=3.11"
+keywords = ["llm", "evals", "agents", "inspect-ai", "user-simulation", "llm-as-a-judge"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
+dependencies = [
+    "inspect-ai>=0.3.287",
+    "pydantic>=2.7",
+    "httpx>=0.27",
+    "httpx-sse>=0.4",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+]
+
+[project.urls]
+Repository = "https://github.com/AnushDeokar/runthrough"
+Issues = "https://github.com/AnushDeokar/runthrough/issues"
+
+[project.scripts]
+runthrough = "runthrough.cli:app"
+
+# Lets Inspect discover runthrough's solvers and scorers by name.
+[project.entry-points.inspect_ai]
+runthrough = "runthrough._registry"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+    "respx>=0.21",
+    "ruff>=0.7",
+    "pyright>=1.1.390",
+]
+
+[build-system]
+requires = ["uv_build>=0.8.0,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.pyright]
+include = ["src", "tests"]
+pythonVersion = "3.11"
+typeCheckingMode = "standard"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"

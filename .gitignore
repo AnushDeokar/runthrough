@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Environments
+.venv
+.env
+.env.*
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.pyright/
+
+# Inspect output
+logs/
+
+# OS
+.DS_Store
