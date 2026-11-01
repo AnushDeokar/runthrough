@@ -2,7 +2,14 @@
 
 from importlib.metadata import PackageNotFoundError, version
 
-from runthrough.adapters import AgentTurn, Target, ToolCallRecord, TurnContext
+from runthrough.adapters import (
+    AgentStep,
+    AgentTurn,
+    Target,
+    ToolCallRecord,
+    TurnContext,
+    ai_sdk_endpoint,
+)
 from runthrough.scenario import (
     Expectations,
     Scenario,
@@ -18,6 +25,7 @@ except PackageNotFoundError:  # running from a source checkout without install
     __version__ = "0.0.0"
 
 __all__ = [
+    "AgentStep",
     "AgentTurn",
     "Expectations",
     "Scenario",
@@ -26,6 +34,7 @@ __all__ = [
     "ToolCallRecord",
     "TurnContext",
     "__version__",
+    "ai_sdk_endpoint",
     "load_scenarios",
     "scenarios",
     "simulated_conversation",

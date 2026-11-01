@@ -23,15 +23,40 @@ class ToolCallRecord(BaseModel):
     error: str | None = None
 
 
+class AgentStep(BaseModel):
+    """One model step inside a turn: optional text, then the tools it called."""
+
+    text: str = ""
+    tool_calls: list[ToolCallRecord] = Field(default_factory=list)
+
+
 class AgentTurn(BaseModel):
-    """Everything the agent produced in reply to one user message."""
+    """Everything the agent produced in reply to one user message.
+
+    Simple adapters fill ``text`` and ``tool_calls``. Adapters that can see the
+    agent's individual steps also fill ``steps`` (use :meth:`from_steps`), which
+    keeps text and tool calls in the order they happened.
+    """
 
     text: str
     tool_calls: list[ToolCallRecord] = Field(default_factory=list)
+    steps: list[AgentStep] = Field(default_factory=list)
+    message_id: str | None = None
+    """The agent's own id for its reply, if it reports one."""
     latency_ms: int | None = None
     error: str | None = None
     raw_events: list[dict[str, Any]] = Field(default_factory=list)
     """The untouched response events, kept for debugging and custom scorers."""
+
+    @classmethod
+    def from_steps(cls, steps: list[AgentStep], **fields: Any) -> AgentTurn:
+        """Build a turn from steps, deriving ``text`` and ``tool_calls`` from them."""
+        return cls(
+            text="\n\n".join(step.text for step in steps if step.text),
+            tool_calls=[call for step in steps for call in step.tool_calls],
+            steps=steps,
+            **fields,
+        )
 
 
 class TurnContext(BaseModel):

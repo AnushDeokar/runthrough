@@ -20,7 +20,9 @@ uv run pyright
 ## Layout
 
 - `src/runthrough/adapters/` - `Target` protocol and one adapter per endpoint protocol.
-  Each adapter turns the agent's response into an `AgentTurn`.
+  Each adapter turns the agent's response into an `AgentTurn` (with `steps` when visible).
+  `ai_sdk.py`: Vercel AI SDK v5 UI-message stream; fixtures in `tests/fixtures/ai_sdk/`,
+  regenerated with `generate.mjs`.
 - `src/runthrough/scenario/` - scenario YAML schema (pydantic) and loader to Inspect `Sample`s.
 - `src/runthrough/simulator/` - `simulated_conversation` solver: simulator model <-> target loop,
   appending user / assistant / tool messages to `TaskState.messages`.

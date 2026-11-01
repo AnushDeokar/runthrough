@@ -5,8 +5,8 @@ STOP_TOKEN = "###STOP###"
 
 DEFAULT_SIMULATOR_PROMPT = """\
 You are role-playing a person who is chatting with an AI assistant. You are the user, \
-not the assistant. The assistant's messages appear as the user turns of this conversation; \
-your replies are the person's messages.
+not the assistant. Each time, you'll be shown the conversation so far, with your own \
+messages marked "You" and the assistant's marked "Assistant".
 
 Who you are:
 {persona}
@@ -26,5 +26,10 @@ come up naturally or when you are asked for them.
 {stop_token} and nothing else.\
 """
 
-KICKOFF_MESSAGE = "[The chat window is open. Send your first message.]"
-NO_REPLY_MESSAGE = "[The assistant did not reply.]"
+FIRST_TURN_MESSAGE = (
+    "The chat window is open and nothing has been said yet. Write your first message."
+)
+NEXT_TURN_INSTRUCTION = "Write your next message."
+USER_LABEL = "You"
+AGENT_LABEL = "Assistant"
+NO_REPLY_MESSAGE = "(no reply)"

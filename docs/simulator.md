@@ -47,9 +47,20 @@ The outcome is stored in each sample's metadata under `runthrough`:
 
 ## What the simulator sees
 
-A system prompt built from the scenario's `persona` and `goal`, then the conversation with
-roles swapped: its own earlier messages as assistant turns, the agent's replies as user turns.
-Tool calls are hidden, because a real user never sees them. Pass `prompt=` to use your own
+A system prompt built from the scenario's `persona` and `goal`, then one message with the
+conversation so far as a labelled transcript:
+
+```
+Conversation so far:
+
+You: Hi, my order arrived broken and I'd like my money back.
+
+Assistant: Sorry to hear that! Could you give me your order number?
+
+Write your next message.
+```
+
+Tool calls are left out, because a real user never sees them. Pass `prompt=` to use your own
 system prompt; it must contain `{persona}`, `{goal}` and `{stop_token}`.
 
 ## Choosing the simulator model

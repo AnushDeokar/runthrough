@@ -25,7 +25,7 @@ from runthrough.simulator import (
     turn_to_messages,
 )
 from runthrough.simulator.convert import clean_user_message
-from runthrough.simulator.prompts import KICKOFF_MESSAGE, NO_REPLY_MESSAGE
+from runthrough.simulator.prompts import FIRST_TURN_MESSAGE, NO_REPLY_MESSAGE
 from runthrough.testing import ScriptedTarget
 
 
@@ -85,19 +85,21 @@ class TestConversation:
         assert sample.output.completion == "Refund issued."
         assert len(seen) == 3
 
-    def test_simulator_sees_persona_and_swapped_roles(self, tmp_path: Path) -> None:
+    def test_simulator_sees_persona_and_a_labelled_transcript(self, tmp_path: Path) -> None:
         model, seen = simulator_model(["Hi, my mug broke", STOP_TOKEN])
         run(scenario(), ScriptedTarget(["Sorry to hear that."]), model, tmp_path)
 
         first, second = seen
         assert "Priya, polite" in first[0].text and "Refund a broken mug" in first[0].text
         assert STOP_TOKEN in first[0].text
-        assert [m.role for m in first] == ["system", "user"]
-        assert [(m.role, m.text) for m in second[1:]] == [
-            ("user", KICKOFF_MESSAGE),
-            ("assistant", "Hi, my mug broke"),
-            ("user", "Sorry to hear that."),
-        ]
+        assert [(m.role, m.text) for m in first[1:]] == [("user", FIRST_TURN_MESSAGE)]
+        assert [m.role for m in second] == ["system", "user"]
+        assert second[1].text == (
+            "Conversation so far:\n\n"
+            "You: Hi, my mug broke\n\n"
+            "Assistant: Sorry to hear that.\n\n"
+            "Write your next message."
+        )
 
     def test_target_gets_full_history_context_and_one_conversation_id(self, tmp_path: Path) -> None:
         model, _ = simulator_model(["one", "two", STOP_TOKEN])
@@ -182,7 +184,10 @@ class TestConversation:
         assert isinstance(call_message, ChatMessageAssistant) and call_message.tool_calls
         assert call_message.tool_calls[0].function == "request_human_handoff"
         # The simulated user sees the reply text, never the tool call.
-        assert seen[1][-1].text == "I've passed your request to our team."
+        assert seen[1][-1].text.endswith(
+            "Assistant: I've passed your request to our team.\n\nWrite your next message."
+        )
+        assert "request_human_handoff" not in seen[1][-1].text
 
     def test_requires_a_runthrough_scenario(self, tmp_path: Path) -> None:
         from inspect_ai.dataset import Sample
@@ -247,17 +252,23 @@ class TestConversion:
             ChatMessageAssistant(content=""),
             ChatMessageUser(content="hello?"),
         ]
-        view = simulator_view("system", conversation)
-        assert [(m.role, m.text) for m in view[2:]] == [
-            ("assistant", "hi"),
-            ("user", NO_REPLY_MESSAGE),
-            ("assistant", "hello?"),
-            ("user", NO_REPLY_MESSAGE),
-        ]
+        [_, prompt] = simulator_view("system", conversation)
+        assert prompt.text == (
+            "Conversation so far:\n\n"
+            f"You: hi\n\nAssistant: {NO_REPLY_MESSAGE}\n\n"
+            f"You: hello?\n\nAssistant: {NO_REPLY_MESSAGE}\n\n"
+            "Write your next message."
+        )
 
     @pytest.mark.parametrize(
         ("raw", "clean"),
-        [('"Hi there"', "Hi there"), ("User: hello", "hello"), ("  ok  ", "ok"), ("it's", "it's")],
+        [
+            ('"Hi there"', "Hi there"),
+            ("User: hello", "hello"),
+            ("You: hey", "hey"),
+            ("  ok  ", "ok"),
+            ("it's", "it's"),
+        ],
     )
     def test_clean_user_message(self, raw: str, clean: str) -> None:
         assert clean_user_message(raw) == clean
@@ -272,7 +283,9 @@ def test_example_task_runs(tmp_path: Path) -> None:
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
 
-    model, _ = simulator_model(lambda view: STOP_TOKEN if len(view) > 4 else "Order 48213")
+    model, _ = simulator_model(
+        lambda view: STOP_TOKEN if "Assistant:" in view[-1].text else "Order 48213"
+    )
     [log] = eval(
         module.support(),
         model=model,

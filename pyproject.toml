@@ -26,7 +26,6 @@ dependencies = [
     "httpx-sse>=0.4",
     "pyyaml>=6.0",
     "typer>=0.12",
-    "openai>=3.42.0",
 ]
 
 [project.urls]
@@ -42,6 +41,8 @@ runthrough = "runthrough._registry"
 
 [dependency-groups]
 dev = [
+    # Model SDKs used when running the examples (Inspect's openai and ollama providers).
+    "openai>=3.42.0",
     "pytest>=8",
     "pytest-asyncio>=0.24",
     "respx>=0.21",
