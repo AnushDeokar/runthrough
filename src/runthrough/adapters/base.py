@@ -47,8 +47,10 @@ class TurnContext(BaseModel):
 class Target(Protocol):
     """An agent endpoint that runthrough can hold a conversation with."""
 
-    history: Literal["full", "session"]
-    """``"full"``: resend the whole conversation each turn (e.g. Vercel AI SDK).
-    ``"session"``: the endpoint keeps history; send only the newest message."""
+    @property
+    def history(self) -> Literal["full", "session"]:
+        """``"full"``: resend the whole conversation each turn (e.g. Vercel AI SDK).
+        ``"session"``: the endpoint keeps history; send only the newest message."""
+        ...
 
     async def send(self, messages: list[ChatMessage], ctx: TurnContext) -> AgentTurn: ...

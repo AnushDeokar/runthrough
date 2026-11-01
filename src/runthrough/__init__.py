@@ -10,6 +10,7 @@ from runthrough.scenario import (
     load_scenarios,
     scenarios,
 )
+from runthrough.simulator import simulated_conversation
 
 try:
     __version__ = version("runthrough")
@@ -27,4 +28,5 @@ __all__ = [
     "__version__",
     "load_scenarios",
     "scenarios",
+    "simulated_conversation",
 ]

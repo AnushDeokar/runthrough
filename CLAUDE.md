@@ -27,6 +27,7 @@ uv run pyright
 - `src/runthrough/scorers/` - exact trajectory checks and the rubric judge (Inspect `grader` role).
 - `src/runthrough/calibrate/` - labels, Cohen's kappa, labelling page.
 - `src/runthrough/report/` - regression report between two `.eval` logs.
+- `src/runthrough/testing.py` - `ScriptedTarget`, a fake agent for tests and dry runs.
 - `src/runthrough/_registry.py` - Inspect entry point; import new solvers/scorers here.
 
 ## Conventions
@@ -38,4 +39,6 @@ uv run pyright
 - Keep the core free of anything specific to one company or agent. Product-specific suites
   live in the consumer's repo, not here.
 - Adapter tests run against recorded response fixtures in `tests/fixtures/`, never live endpoints.
+- End-to-end solver tests run real `inspect_ai.eval()` with a `mockllm` simulator
+  (`custom_outputs` callable) and `ScriptedTarget`; see `tests/test_simulator.py`.
 - Python 3.11+, full type hints, ruff + pyright clean.

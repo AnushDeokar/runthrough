@@ -7,3 +7,5 @@ functions registers them, so they can be referenced by name, e.g.
 
 Add imports here as solvers and scorers are implemented.
 """
+
+from runthrough.simulator import simulated_conversation  # noqa: F401

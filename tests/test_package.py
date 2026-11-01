@@ -1,4 +1,5 @@
 from importlib.metadata import entry_points
+from typing import Literal
 
 from typer.testing import CliRunner
 
@@ -34,7 +35,7 @@ def test_agent_turn_defaults() -> None:
 
 
 class _EchoTarget:
-    history = "full"
+    history: Literal["full", "session"] = "full"
 
     async def send(self, messages, ctx: TurnContext) -> AgentTurn:
         return AgentTurn(text=f"turn {ctx.turn}: {len(messages)} messages")

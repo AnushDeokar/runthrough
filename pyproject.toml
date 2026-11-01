@@ -26,6 +26,7 @@ dependencies = [
     "httpx-sse>=0.4",
     "pyyaml>=6.0",
     "typer>=0.12",
+    "openai>=3.42.0",
 ]
 
 [project.urls]
@@ -68,3 +69,7 @@ typeCheckingMode = "standard"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
+filterwarnings = [
+    # Raised inside inspect_ai's retry setup, not by runthrough.
+    "ignore:The 'initial' parameter is deprecated:DeprecationWarning",
+]
