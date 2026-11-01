@@ -5,6 +5,9 @@ Run it with any simulator model, e.g. a local one:
     inspect eval examples/suites/support/task.py --model ollama/qwen3:8b
     inspect view
 
+The same model plays the user and judges the rubrics unless you set roles, e.g.
+``--model-role simulator=ollama/qwen3:8b --model-role grader=openai/gpt-4.1``.
+
 Swap ``agent`` for a real adapter to test your own endpoint.
 """
 
@@ -12,7 +15,13 @@ from pathlib import Path
 
 from inspect_ai import Task, task
 
-from runthrough import AgentTurn, ToolCallRecord, scenarios, simulated_conversation
+from runthrough import (
+    AgentTurn,
+    ToolCallRecord,
+    scenario_scorers,
+    scenarios,
+    simulated_conversation,
+)
 from runthrough.testing import ScriptedTarget
 
 HERE = Path(__file__).parent
@@ -34,7 +43,9 @@ agent = ScriptedTarget(
 
 @task
 def support() -> Task:
+    dataset = scenarios(HERE / "scenarios")
     return Task(
-        dataset=scenarios(HERE / "scenarios"),
+        dataset=dataset,
         solver=simulated_conversation(agent),
+        scorer=scenario_scorers(dataset),
     )

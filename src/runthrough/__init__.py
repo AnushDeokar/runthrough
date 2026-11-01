@@ -17,6 +17,7 @@ from runthrough.scenario import (
     load_scenarios,
     scenarios,
 )
+from runthrough.scorers import scenario_scorers
 from runthrough.simulator import simulated_conversation
 
 try:
@@ -36,6 +37,7 @@ __all__ = [
     "__version__",
     "ai_sdk_endpoint",
     "load_scenarios",
+    "scenario_scorers",
     "scenarios",
     "simulated_conversation",
 ]

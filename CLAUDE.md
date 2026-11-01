@@ -26,7 +26,9 @@ uv run pyright
 - `src/runthrough/scenario/` - scenario YAML schema (pydantic) and loader to Inspect `Sample`s.
 - `src/runthrough/simulator/` - `simulated_conversation` solver: simulator model <-> target loop,
   appending user / assistant / tool messages to `TaskState.messages`.
-- `src/runthrough/scorers/` - exact trajectory checks and the rubric judge (Inspect `grader` role).
+- `src/runthrough/scorers/` - exact checks (`tools.py`, `language.py`) and the rubric judge
+  (`judge.py`, Inspect `grader` role; one scorer per rubric file). Scorers return `None`
+  when a scenario doesn't ask for their check. `scenario_scorers(dataset)` bundles them.
 - `src/runthrough/calibrate/` - labels, Cohen's kappa, labelling page.
 - `src/runthrough/report/` - regression report between two `.eval` logs.
 - `src/runthrough/testing.py` - `ScriptedTarget`, a fake agent for tests and dry runs.

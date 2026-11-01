@@ -28,6 +28,10 @@ dependencies = [
     "typer>=0.12",
 ]
 
+[project.optional-dependencies]
+# Detects reply language for the reply_language scorer.
+language = ["langdetect>=1.0.9"]
+
 [project.urls]
 Repository = "https://github.com/AnushDeokar/runthrough"
 Issues = "https://github.com/AnushDeokar/runthrough/issues"
@@ -43,6 +47,7 @@ runthrough = "runthrough._registry"
 dev = [
     # Model SDKs used when running the examples (Inspect's openai and ollama providers).
     "openai>=3.42.0",
+    "langdetect>=1.0.9",
     "pytest>=8",
     "pytest-asyncio>=0.24",
     "respx>=0.21",

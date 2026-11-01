@@ -7,7 +7,8 @@ conversations with your agent over HTTP, using an LLM to play the user. It recor
 reply, tool call and tool result, and scores them with exact checks and an LLM judge. You
 can measure how often that judge agrees with your own labels.
 
-> **Status:** pre-alpha. The package structure is in place and the features are being built.
+> **Status:** pre-alpha. Scenarios, simulated users, the Vercel AI SDK adapter and scoring
+> (exact checks and a rubric judge) work. Judge calibration and run comparison are next.
 
 ## What it will do
 
