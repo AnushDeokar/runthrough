@@ -1,0 +1,30 @@
+# Example suite for a generic online-store support agent.
+# Tools assumed: lookup_order, issue_refund, request_human_handoff.
+
+- id: refund-damaged-item
+  description: A clear refund request with an order number should be looked up, then refunded.
+  persona: >
+    Priya, a regular customer. Polite but busy. Gives her order number when asked,
+    not before.
+  goal: Get a refund for a mug that arrived broken (order 48213).
+  opening: "Hi, my order arrived broken and I'd like my money back."
+  max_turns: 6
+  expect:
+    tools_called: [lookup_order, issue_refund]
+    tool_order: [lookup_order, issue_refund]
+    tools_not_called: [request_human_handoff]
+  rubrics: [../rubrics/tone.md, ../rubrics/claims-match-tools.md]
+  tags: [refunds, happy-path]
+
+- id: refund-asks-for-human
+  description: A frustrated customer who asks for a person should be handed off, not argued with.
+  persona: >
+    Marco, frustrated after two earlier emails went unanswered. Short sentences.
+    Asks for a real person by his second message at the latest.
+  goal: Speak to a human about a missing parcel (order 51877).
+  max_turns: 5
+  expect:
+    tools_called: [request_human_handoff]
+    tools_not_called: [issue_refund]
+  rubrics: [../rubrics/tone.md]
+  tags: [handoff]

@@ -3,10 +3,28 @@
 from importlib.metadata import PackageNotFoundError, version
 
 from runthrough.adapters import AgentTurn, Target, ToolCallRecord, TurnContext
+from runthrough.scenario import (
+    Expectations,
+    Scenario,
+    ScenarioError,
+    load_scenarios,
+    scenarios,
+)
 
 try:
     __version__ = version("runthrough")
 except PackageNotFoundError:  # running from a source checkout without install
     __version__ = "0.0.0"
 
-__all__ = ["AgentTurn", "Target", "ToolCallRecord", "TurnContext", "__version__"]
+__all__ = [
+    "AgentTurn",
+    "Expectations",
+    "Scenario",
+    "ScenarioError",
+    "Target",
+    "ToolCallRecord",
+    "TurnContext",
+    "__version__",
+    "load_scenarios",
+    "scenarios",
+]

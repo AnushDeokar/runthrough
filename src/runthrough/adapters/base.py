@@ -39,8 +39,8 @@ class TurnContext(BaseModel):
 
     conversation_id: str
     turn: int
-    metadata: dict[str, Any] = Field(default_factory=dict)
-    """Scenario values passed through to the endpoint, e.g. profile data."""
+    context: dict[str, Any] = Field(default_factory=dict)
+    """The scenario's ``context`` values, passed through to the endpoint (e.g. profile data)."""
 
 
 @runtime_checkable
