@@ -1,0 +1,42 @@
+data: {"type":"start","messageId":"msg-assistant-1"}
+
+data: {"type":"start-step"}
+
+data: {"type":"reasoning-start","id":"r1"}
+
+data: {"type":"reasoning-delta","id":"r1","delta":"The parent wants a person."}
+
+data: {"type":"reasoning-end","id":"r1"}
+
+data: {"type":"tool-input-start","toolCallId":"call_h1","toolName":"request_human_handoff"}
+
+data: {"type":"tool-input-delta","toolCallId":"call_h1","inputTextDelta":"{\"reason\":"}
+
+data: {"type":"tool-input-delta","toolCallId":"call_h1","inputTextDelta":"\"asked for admissions\"}"}
+
+data: {"type":"tool-input-available","toolCallId":"call_h1","toolName":"request_human_handoff","input":{"reason":"asked for admissions"}}
+
+data: {"type":"tool-output-available","toolCallId":"call_h1","output":{"notified":true}}
+
+data: {"type":"finish-step"}
+
+data: {"type":"start-step"}
+
+data: {"type":"text-start","id":"t2"}
+
+data: {"type":"text-delta","id":"t2","delta":"I've passed "}
+
+data: {"type":"text-delta","id":"t2","delta":"your request"}
+
+data: {"type":"text-delta","id":"t2","delta":" to our admi"}
+
+data: {"type":"text-delta","id":"t2","delta":"ssions team."}
+
+data: {"type":"text-end","id":"t2"}
+
+data: {"type":"finish-step"}
+
+data: {"type":"finish","finishReason":"stop"}
+
+data: [DONE]
+

@@ -23,7 +23,6 @@ logs/
 
 # Node (when regenerating tests/fixtures/ai_sdk)
 node_modules/
-tests
 
 # Editors / OS
 .idea/

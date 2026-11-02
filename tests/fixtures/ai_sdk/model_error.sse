@@ -1,0 +1,6 @@
+data: {"type":"start","messageId":"msg-assistant-1"}
+
+data: {"type":"error","errorText":"An error occurred."}
+
+data: [DONE]
+

@@ -1,0 +1,28 @@
+data: {"type":"start","messageId":"msg-assistant-1"}
+
+data: {"type":"start-step"}
+
+data: {"type":"tool-input-available","toolCallId":"call_r1","toolName":"retrieval","input":{"query":"FS1 fees"}}
+
+data: {"type":"tool-output-available","toolCallId":"call_r1","output":{"query":"FS1 fees","chunks":[{"text":"FS1 annual fees are AED 52,000.","source":"fees-2026.pdf"}]}}
+
+data: {"type":"finish-step"}
+
+data: {"type":"start-step"}
+
+data: {"type":"text-start","id":"t2"}
+
+data: {"type":"text-delta","id":"t2","delta":"Annual fees "}
+
+data: {"type":"text-delta","id":"t2","delta":"for FS1 are "}
+
+data: {"type":"text-delta","id":"t2","delta":"AED 52,000."}
+
+data: {"type":"text-end","id":"t2"}
+
+data: {"type":"finish-step"}
+
+data: {"type":"finish","finishReason":"stop"}
+
+data: [DONE]
+

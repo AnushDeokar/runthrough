@@ -1,0 +1,50 @@
+data: {"type":"start","messageId":"msg-assistant-1"}
+
+data: {"type":"start-step"}
+
+data: {"type":"tool-input-available","toolCallId":"call_a1","toolName":"check_meeting_availability","input":{"date":"2026-11-03"}}
+
+data: {"type":"tool-output-available","toolCallId":"call_a1","output":{"date":"2026-11-03","slots":["10:00","14:30"]}}
+
+data: {"type":"finish-step"}
+
+data: {"type":"start-step"}
+
+data: {"type":"text-start","id":"t2"}
+
+data: {"type":"text-delta","id":"t2","delta":"Let me book "}
+
+data: {"type":"text-delta","id":"t2","delta":"10:00 for yo"}
+
+data: {"type":"text-delta","id":"t2","delta":"u."}
+
+data: {"type":"text-end","id":"t2"}
+
+data: {"type":"tool-input-available","toolCallId":"call_b1","toolName":"book_meeting","input":{"date":"2026-11-03","time":"10:00"}}
+
+data: {"type":"tool-output-error","toolCallId":"call_b1","errorText":"An error occurred."}
+
+data: {"type":"finish-step"}
+
+data: {"type":"start-step"}
+
+data: {"type":"text-start","id":"t3"}
+
+data: {"type":"text-delta","id":"t3","delta":"Sorry, that "}
+
+data: {"type":"text-delta","id":"t3","delta":"slot was jus"}
+
+data: {"type":"text-delta","id":"t3","delta":"t taken. Wou"}
+
+data: {"type":"text-delta","id":"t3","delta":"ld 14:30 wor"}
+
+data: {"type":"text-delta","id":"t3","delta":"k?"}
+
+data: {"type":"text-end","id":"t3"}
+
+data: {"type":"finish-step"}
+
+data: {"type":"finish","finishReason":"stop"}
+
+data: [DONE]
+

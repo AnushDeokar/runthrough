@@ -1,0 +1,22 @@
+data: {"type":"start","messageId":"msg-assistant-1"}
+
+data: {"type":"start-step"}
+
+data: {"type":"text-start","id":"t1"}
+
+data: {"type":"text-delta","id":"t1","delta":"Hello! How c"}
+
+data: {"type":"text-delta","id":"t1","delta":"an I help yo"}
+
+data: {"type":"text-delta","id":"t1","delta":"u with admis"}
+
+data: {"type":"text-delta","id":"t1","delta":"sions today?"}
+
+data: {"type":"text-end","id":"t1"}
+
+data: {"type":"finish-step"}
+
+data: {"type":"finish","finishReason":"stop"}
+
+data: [DONE]
+
