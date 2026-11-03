@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>runthrough · label</title>
+<style>
+:root {
+  --bg: #f6f7fa; --surface: #fff; --fg: #151a2c; --muted: #5a6179; --line: #dce0ea;
+  --accent: #2f48c9; --accent-soft: #e6eafb; --user: #b9720f; --user-soft: #fbf0de;
+  --pass: #1e7a4c; --pass-soft: #e2f3ea; --fail: #b42b2b; --fail-soft: #fbe6e6;
+  --code: #eef0f6;
+  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1120; --surface: #161a2c; --fg: #e5e8f2; --muted: #9aa2bc; --line: #272d45;
+    --accent: #8299ff; --accent-soft: #1d2547; --user: #ebaa4a; --user-soft: #33270f;
+    --pass: #5cc892; --pass-soft: #13301f; --fail: #ff8a8a; --fail-soft: #3a1616; --code: #12162a;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 var(--sans); }
+header { position: sticky; top: 0; z-index: 2; background: var(--surface); border-bottom: 1px solid var(--line);
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 20px; }
+header h1 { font-size: 15px; margin: 0 12px 0 0; }
+header .progress { color: var(--muted); font-variant-numeric: tabular-nums; }
+header .spacer { flex: 1; }
+button, select { font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+  border-radius: 8px; padding: 6px 12px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+kbd { font: 12px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; color: var(--muted); }
+main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 20px; padding: 20px; max-width: 1400px; margin: 0 auto; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } aside { position: static; } }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; min-width: 0; }
+.meta { color: var(--muted); font-size: 13px; margin: 0 0 12px; }
+.meta b { color: var(--fg); font-weight: 600; }
+.entry { margin: 0 0 10px; padding: 10px 12px; border-radius: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.entry .who { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+.user { background: var(--user-soft); } .user .who { color: var(--user); }
+.assistant { background: var(--accent-soft); } .assistant .who { color: var(--accent); }
+.tool_call, .tool_result { background: var(--code); font: 13px/1.5 var(--mono); margin-left: 24px; }
+.tool_call .who, .tool_result .who { color: var(--muted); font-family: var(--sans); }
+.tool_result .body { max-height: 220px; overflow: auto; display: block; }
+.error { background: var(--fail-soft); margin-left: 24px; } .error .who { color: var(--fail); }
+aside { display: grid; gap: 16px; align-content: start; position: sticky; top: 76px; }
+h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.rubric { white-space: pre-wrap; font-size: 14px; }
+.choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.choices button { padding: 10px; font-weight: 600; }
+.choices button.on[data-label="pass"] { background: var(--pass-soft); border-color: var(--pass); color: var(--pass); }
+.choices button.on[data-label="fail"] { background: var(--fail-soft); border-color: var(--fail); color: var(--fail); }
+.choices button.on[data-label="skip"] { border-color: var(--muted); }
+textarea { width: 100%; min-height: 64px; margin-top: 10px; font: inherit; border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px; background: var(--bg); color: var(--fg); resize: vertical; }
+.verdict { font-weight: 700; } .verdict.pass { color: var(--pass); } .verdict.fail { color: var(--fail); }
+.hidden-note { color: var(--muted); font-size: 14px; }
+.match { margin-top: 8px; font-size: 14px; }
+.keys { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 10px; }
+.empty { padding: 60px 20px; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>runthrough · label</h1>
+  <select id="scorer" aria-label="Rubric"></select>
+  <span class="progress" id="progress"></span>
+  <span class="spacer"></span>
+  <button id="prev" title="Previous (←)">← Prev</button>
+  <button id="next" title="Next (→)">Next →</button>
+  <button id="todo" title="Next unlabelled (U)">Next unlabelled</button>
+</header>
+<main id="app"><p class="empty">Loading…</p></main>
+<script>
+"use strict";
+let items = [], labels = {}, view = [], index = 0, showJudge = false;
+const $ = (id) => document.getElementById(id);
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+async function load() {
+  const data = await (await fetch("/api/items")).json();
+  items = data.items; labels = data.labels;
+  const scorers = [...new Set(items.map((i) => i.scorer))].sort();
+  const select = $("scorer");
+  select.replaceChildren(el("option", null, "All rubrics"));
+  select.firstChild.value = "";
+  for (const s of scorers) { const o = el("option", null, s); o.value = s; select.append(o); }
+  applyFilter();
+  jumpToUnlabelled(0);
+}
+
+function applyFilter() {
+  const scorer = $("scorer").value;
+  view = items.filter((i) => !scorer || i.scorer === scorer);
+  index = Math.min(index, Math.max(view.length - 1, 0));
+}
+
+function jumpToUnlabelled(from) {
+  const n = view.length;
+  for (let k = 0; k < n; k++) {
+    const j = (from + k) % n;
+    if (!labels[view[j].key]) { index = j; break; }
+  }
+  render();
+}
+
+function render() {
+  const done = view.filter((i) => labels[i.key]).length;
+  $("progress").textContent = view.length ? `${index + 1} of ${view.length} · ${done} labelled` : "";
+  const app = $("app");
+  if (!view.length) { app.replaceChildren(el("p", "empty", "No judged conversations in these logs.")); return; }
+  const item = view[index];
+  const label = labels[item.key];
+  showJudge = showJudge || Boolean(label);
+
+  const left = el("section", "card");
+  const meta = el("p", "meta");
+  meta.append(el("b", null, item.sample_id), ` · epoch ${item.epoch} · ${item.log}`);
+  left.append(meta);
+  if (item.description) left.append(el("p", "meta", `Tests: ${item.description}`));
+  if (item.goal) left.append(el("p", "meta", `User wanted: ${item.goal}`));
+  const who = { user: "User", assistant: "Assistant", tool_call: "Tool call", tool_result: "Tool result", error: "Error" };
+  for (const e of item.transcript) {
+    const box = el("div", `entry ${e.kind}`);
+    box.append(el("span", "who", e.name ? `${who[e.kind]} · ${e.name}` : who[e.kind]));
+    box.append(el("span", "body", e.text));
+    left.append(box);
+  }
+
+  const aside = el("aside");
+  const rubric = el("div", "card");
+  rubric.append(el("h2", null, `Rubric · ${item.scorer}`), el("div", "rubric", item.rubric));
+
+  const decide = el("div", "card");
+  decide.append(el("h2", null, "Your verdict"));
+  const choices = el("div", "choices");
+  for (const [value, text] of [["pass", "Pass  P"], ["fail", "Fail  F"], ["skip", "Skip  S"]]) {
+    const b = el("button", label && label.label === value ? "on" : "", text);
+    b.dataset.label = value;
+    b.onclick = () => save(value);
+    choices.append(b);
+  }
+  const note = el("textarea");
+  note.id = "note"; note.placeholder = "Note (optional): why?"; note.value = label ? label.note : "";
+  decide.append(choices, note);
+
+  const judge = el("div", "card");
+  judge.append(el("h2", null, "Judge"));
+  if (showJudge) {
+    judge.append(el("p", `verdict ${item.judge}`, item.judge.toUpperCase()));
+    if (item.judge_reasoning) judge.append(el("p", null, item.judge_reasoning));
+    if (item.judge_evidence) judge.append(el("p", "meta", `Evidence: “${item.judge_evidence}”`));
+    if (label && label.label !== "skip" && item.judge !== "unreadable") {
+      judge.append(el("p", "match", label.label === item.judge ? "✓ You agree with the judge." : "✗ You disagree with the judge."));
+    }
+  } else {
+    judge.append(el("p", "hidden-note", "Hidden until you label, so it doesn't sway you. Press J to show."));
+  }
+
+  const keys = el("div", "keys");
+  for (const k of ["P pass", "F fail", "S skip", "← → move", "U next unlabelled", "J show judge"]) {
+    const [key, ...rest] = k.split(" ");
+    const span = el("span"); span.append(el("kbd", null, key), " " + rest.join(" ")); keys.append(span);
+  }
+  aside.append(rubric, decide, judge, keys);
+  app.replaceChildren(left, aside);
+  window.scrollTo({ top: 0 });
+}
+
+async function save(value) {
+  const item = view[index];
+  const note = $("note") ? $("note").value : "";
+  const res = await fetch("/api/labels", {
+    method: "POST", headers: { "content-type": "application/json" },
+    body: JSON.stringify({ key: item.key, label: value, note }),
+  });
+  if (!res.ok) { alert((await res.json()).error); return; }
+  labels[item.key] = await res.json();
+  showJudge = true;
+  render();
+}
+
+function move(step) { index = (index + step + view.length) % view.length; showJudge = false; render(); }
+
+$("prev").onclick = () => move(-1);
+$("next").onclick = () => move(1);
+$("todo").onclick = () => { showJudge = false; jumpToUnlabelled(index + 1); };
+$("scorer").onchange = () => { index = 0; applyFilter(); jumpToUnlabelled(0); };
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.metaKey || e.ctrlKey) return;
+  const actions = { p: () => save("pass"), f: () => save("fail"), s: () => save("skip"),
+    ArrowRight: () => move(1), ArrowLeft: () => move(-1),
+    u: () => { showJudge = false; jumpToUnlabelled(index + 1); }, j: () => { showJudge = !showJudge; render(); } };
+  const action = actions[e.key];
+  if (action && view.length) { e.preventDefault(); action(); }
+});
+load();
+</script>
+</body>
+</html>
