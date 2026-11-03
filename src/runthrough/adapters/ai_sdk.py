@@ -140,6 +140,7 @@ def parse_ui_message_stream(
     calls: dict[str, ToolCallRecord] = {}
     message_id: str | None = None
     error: str | None = None
+    metadata: dict[str, Any] = {}
 
     def step() -> AgentStep:
         nonlocal current
@@ -156,6 +157,8 @@ def parse_ui_message_stream(
 
     for event in events:
         kind = event.get("type")
+        if isinstance(event.get("messageMetadata"), dict):
+            metadata.update(event["messageMetadata"])
         if kind == "start":
             message_id = event.get("messageId") or message_id
         elif kind == "start-step":
@@ -198,6 +201,7 @@ def parse_ui_message_stream(
         steps,
         message_id=message_id,
         error=error,
+        metadata=metadata,
         latency_ms=latency_ms,
         raw_events=[e for e in events if e.get("type") not in _DELTA_EVENTS],
     )

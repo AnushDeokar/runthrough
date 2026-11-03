@@ -36,6 +36,8 @@ def turn_to_messages(turn: AgentTurn) -> list[ChatMessage]:
         metadata["latency_ms"] = turn.latency_ms
     if turn.message_id is not None:
         metadata["message_id"] = turn.message_id
+    if turn.metadata:
+        metadata["agent_metadata"] = turn.metadata
     if turn.error is not None:
         metadata["error"] = turn.error
 

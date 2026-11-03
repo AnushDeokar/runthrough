@@ -43,6 +43,8 @@ class AgentTurn(BaseModel):
     steps: list[AgentStep] = Field(default_factory=list)
     message_id: str | None = None
     """The agent's own id for its reply, if it reports one."""
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    """Metadata the agent reported about its reply, e.g. model and token usage."""
     latency_ms: int | None = None
     error: str | None = None
     raw_events: list[dict[str, Any]] = Field(default_factory=list)
