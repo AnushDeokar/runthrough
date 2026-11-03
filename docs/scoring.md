@@ -72,8 +72,7 @@ inspect eval task.py --model-role simulator=openai/gpt-4.1-mini --model-role gra
 ```
 
 Use a different model from the simulator, ideally a stronger one. Before trusting a
-rubric's numbers, read a sample of its verdicts in `inspect view`; judge calibration
-against your own labels is planned.
+rubric's numbers, calibrate it against your own labels: see [calibration](calibration.md).
 
 ## Reading the results
 

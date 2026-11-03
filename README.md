@@ -10,7 +10,8 @@ reply, tool call and tool result, then scores the conversation with exact checks
 judge.
 
 > **Status:** pre-alpha. Scenarios, simulated users, the Vercel AI SDK adapter and scoring
-> work. Judge calibration and run comparison are next. Expect the API to change.
+> work, you can calibrate the judge against your own labels, and compare runs on quality,
+> latency and cost. Expect the API to change.
 
 ## Why
 
@@ -112,6 +113,13 @@ inspect eval task.py \
 inspect view
 ```
 
+**5. Check you can trust the judge**
+
+```bash
+runthrough label logs/       # label conversations yourself in a local page
+runthrough calibrate logs/   # agreement and Cohen's kappa per rubric
+```
+
 No agent yet? `examples/suites/support/task.py` runs against a scripted stand-in.
 
 ## What's included
@@ -125,8 +133,8 @@ No agent yet? `examples/suites/support/task.py` runs against a scripted stand-in
 | Exact checks: `tools_called`, `tools_not_called`, `tool_order`, `reply_language`, `no_agent_errors` | ✅ |
 | Rubric judge: one LLM-judged score per rubric file, with evidence quotes | ✅ |
 | OpenAI-compatible and plain HTTP adapters | Planned |
-| Judge calibration against your own labels (agreement, disagreements) | Planned |
-| `runthrough diff`: compare two runs scenario by scenario | Planned |
+| Judge calibration: label conversations in a local page, get agreement and Cohen's kappa per rubric | ✅ |
+| `runthrough compare`: runs side by side with pass rates, latency, tokens and cost | ✅ |
 
 ## runthrough and Inspect AI
 
@@ -146,6 +154,8 @@ deployed chat agent.
 - [Simulated conversations](docs/simulator.md)
 - [Adapters](docs/adapters.md)
 - [Scoring](docs/scoring.md)
+- [Judge calibration](docs/calibration.md)
+- [Comparing runs](docs/comparing.md)
 
 ## Development
 

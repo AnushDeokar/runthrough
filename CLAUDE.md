@@ -29,8 +29,11 @@ uv run pyright
 - `src/runthrough/scorers/` - exact checks (`tools.py`, `language.py`) and the rubric judge
   (`judge.py`, Inspect `grader` role; one scorer per rubric file). Scorers return `None`
   when a scenario doesn't ask for their check. `scenario_scorers(dataset)` bundles them.
-- `src/runthrough/calibrate/` - labels, Cohen's kappa, labelling page.
-- `src/runthrough/report/` - regression report between two `.eval` logs.
+- `src/runthrough/calibrate/` - `labels.py` (JSONL store, latest wins), `items.py` (judge scores
+  from `.eval` logs, keyed `<sample uuid>:<scorer>`), `agreement.py` (kappa, confusion,
+  disagreements), `server.py` + `ui.html` (stdlib-only local labelling page).
+- `src/runthrough/report/compare.py` - `runthrough compare`: runs grouped by `runthrough_label`,
+  pass rates, latency, tokens/cost from agent-reported `agent_metadata.usage`.
 - `src/runthrough/testing.py` - `ScriptedTarget`, a fake agent for tests and dry runs.
 - `src/runthrough/_registry.py` - Inspect entry point; import new solvers/scorers here.
 
