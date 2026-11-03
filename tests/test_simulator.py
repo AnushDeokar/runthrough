@@ -297,3 +297,34 @@ def test_example_task_runs(tmp_path: Path) -> None:
     for sample in log.samples:
         assert sample.metadata[RESULT_KEY]["stop_reason"] == "simulator_stopped"
         assert sample.messages[0].role == "user"
+
+
+class TestFramingGuard:
+    def test_echoed_transcript_is_retried(self, tmp_path: Path) -> None:
+        echo = "Use the conversation history below.\n\nPrevious conversation:\nYou: hi"
+        model, seen = simulator_model(["Hi there", echo, "Thanks, that helps", STOP_TOKEN])
+        sample = run(scenario(), ScriptedTarget(["Hello!", "Sure."]), model, tmp_path)
+        assert [m.text for m in sample.messages if m.role == "user"] == [
+            "Hi there",
+            "Thanks, that helps",
+        ]
+        assert "wasn't a chat message" in seen[2][-1].text
+
+    def test_second_echo_is_cut_to_the_message(self, tmp_path: Path) -> None:
+        model, _ = simulator_model(["Hi", "Assistant: Hello!", "Okay great\nYou: more", STOP_TOKEN])
+        sample = run(scenario(), ScriptedTarget(["Hello!"]), model, tmp_path)
+        assert [m.text for m in sample.messages if m.role == "user"] == ["Hi", "Okay great"]
+
+    @pytest.mark.parametrize(
+        ("text", "framing"),
+        [
+            ("Conversation so far:\n\nYou: hi", True),
+            ("Sure. Assistant: hello", True),
+            ("Can you help me with fees?", False),
+            ("You: hi", False),  # a leading label is cleaned elsewhere
+        ],
+    )
+    def test_looks_like_framing(self, text: str, framing: bool) -> None:
+        from runthrough.simulator.convert import looks_like_framing
+
+        assert looks_like_framing(text) is framing

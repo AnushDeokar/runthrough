@@ -10,7 +10,14 @@ from inspect_ai.solver import Generate, Solver, TaskState, solver
 
 from runthrough.adapters.base import Target, TurnContext
 from runthrough.scenario import scenario_from_metadata
-from runthrough.simulator.convert import clean_user_message, simulator_view, turn_to_messages
+from runthrough.simulator.convert import (
+    RETRY_INSTRUCTION,
+    clean_user_message,
+    looks_like_framing,
+    simulator_view,
+    strip_framing,
+    turn_to_messages,
+)
 from runthrough.simulator.prompts import DEFAULT_SIMULATOR_PROMPT, STOP_TOKEN
 
 RESULT_KEY = "runthrough"
@@ -66,8 +73,7 @@ def simulated_conversation(
             if turn <= len(scenario.opening):
                 user_text = scenario.opening[turn - 1]
             else:
-                output = await model.generate(simulator_view(system_prompt, state.messages))
-                user_text = clean_user_message(output.completion)
+                user_text = await _next_user_message(model, system_prompt, state.messages)
                 if STOP_TOKEN in user_text or not user_text:
                     stop_reason = "simulator_stopped"
                     break
@@ -95,6 +101,18 @@ def simulated_conversation(
         return state
 
     return solve
+
+
+async def _next_user_message(model: Model, system_prompt: str, conversation: list) -> str:
+    """Ask the simulator for the next message, retrying once if it echoes the transcript."""
+    view = simulator_view(system_prompt, conversation)
+    output = await model.generate(view)
+    text = clean_user_message(output.completion)
+    if not looks_like_framing(text):
+        return text
+    retry = [*view, output.message, ChatMessageUser(content=RETRY_INSTRUCTION)]
+    text = clean_user_message((await model.generate(retry)).completion)
+    return strip_framing(text)
 
 
 def _last_reply(state: TaskState) -> str:

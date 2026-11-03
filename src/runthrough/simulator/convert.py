@@ -19,6 +19,7 @@ from runthrough.simulator.prompts import (
     FIRST_TURN_MESSAGE,
     NEXT_TURN_INSTRUCTION,
     NO_REPLY_MESSAGE,
+    STOP_TOKEN,
     USER_LABEL,
 )
 
@@ -109,6 +110,33 @@ def clean_user_message(text: str) -> str:
     if len(text) >= 2 and text[0] == text[-1] and text[0] in "\"'":
         text = text[1:-1].strip()
     return text
+
+
+RETRY_INSTRUCTION = (
+    "That wasn't a chat message. Reply with only the next message the person would type, "
+    f"in their own words, with no labels and no transcript (or {STOP_TOKEN} if they're done)."
+)
+
+_FRAMING_MARKERS = (
+    "Conversation so far",
+    "Previous conversation",
+    NEXT_TURN_INSTRUCTION,
+    "conversation history",
+    f"\n{USER_LABEL}:",
+    f"\n{AGENT_LABEL}:",
+    f"{AGENT_LABEL}: ",
+)
+
+
+def looks_like_framing(text: str) -> bool:
+    """True if the simulator echoed the transcript or its instructions instead of a message."""
+    return any(marker in text for marker in _FRAMING_MARKERS)
+
+
+def strip_framing(text: str) -> str:
+    """Keep only what comes before any echoed transcript or instruction."""
+    cut = min((text.find(m) for m in _FRAMING_MARKERS if m in text), default=len(text))
+    return text[:cut].strip()
 
 
 def _agent_line(texts: list[str]) -> str:
