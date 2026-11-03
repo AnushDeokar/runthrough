@@ -205,3 +205,76 @@ def calibrate(
             "\n[dim]Fewer than 30 labels for a rubric gives a rough estimate; label more before "
             "relying on it.[/dim]"
         )
+
+
+@app.command()
+def compare(
+    logs: LogsArg,
+    prices: Annotated[
+        Path | None,
+        typer.Option(
+            help="YAML/JSON of model -> {input, cached_input, output} in USD per 1M tokens."
+        ),
+    ] = None,
+    as_json: Annotated[bool, typer.Option("--json", help="Print the comparison as JSON.")] = False,
+) -> None:
+    """Compare runs side by side: pass rate per scorer, latency, tokens and cost."""
+    import json
+
+    from rich.console import Console
+    from rich.table import Table
+
+    from runthrough.report import compare_runs, load_prices
+
+    runs = compare_runs(logs, prices=load_prices(prices) if prices else None)
+    if as_json:
+        typer.echo(json.dumps([r.model_dump() for r in runs], indent=2, ensure_ascii=False))
+        return
+    console = Console()
+    if not runs:
+        console.print("No logs with samples found.")
+        raise typer.Exit(code=1)
+
+    def pct(value: float | None) -> str:
+        return "-" if value is None else f"{value:.0%}"
+
+    summary = Table(title="Runs", show_edge=False, pad_edge=False)
+    for column in [
+        "run",
+        "convs",
+        "errors",
+        "overall",
+        "latency p50",
+        "latency p95",
+        "tokens/conv",
+        "$/1k convs",
+    ]:
+        summary.add_column(column, justify="left" if column == "run" else "right")
+    for r in runs:
+        summary.add_row(
+            r.label,
+            str(r.conversations),
+            str(r.errors),
+            pct(r.overall_pass_rate),
+            "-" if r.latency_ms_p50 is None else f"{r.latency_ms_p50 / 1000:.1f}s",
+            "-" if r.latency_ms_p95 is None else f"{r.latency_ms_p95 / 1000:.1f}s",
+            "-" if r.tokens_per_conversation is None else f"{r.tokens_per_conversation:,.0f}",
+            "-"
+            if r.cost_per_1k_conversations_usd is None
+            else f"{r.cost_per_1k_conversations_usd:,.2f}",
+        )
+    console.print(summary)
+
+    names = sorted({s.name for r in runs for s in r.scorers})
+    scores = Table(title="Pass rate by scorer", show_edge=False, pad_edge=False)
+    scores.add_column("scorer")
+    for r in runs:
+        scores.add_column(r.label, justify="right")
+    for name in names:
+        row = [name]
+        for r in runs:
+            found = next((s for s in r.scorers if s.name == name), None)
+            row.append("-" if found is None else f"{pct(found.pass_rate)} (n={found.scored})")
+        scores.add_row(*row)
+    console.print()
+    console.print(scores)
