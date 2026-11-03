@@ -25,6 +25,9 @@ class JudgedItem(BaseModel):
     """One conversation scored by one rubric judge."""
 
     key: str
+    """``<sample uuid>:<scorer name>``; what a label is attached to."""
+    conversation: str
+    """``<sample uuid>``; shared by every rubric judged on the same conversation."""
     scorer: str
     sample_id: str
     epoch: int
@@ -37,6 +40,63 @@ class JudgedItem(BaseModel):
     goal: str = ""
     description: str = ""
     transcript: list[TranscriptEntry]
+
+
+class RubricVerdict(BaseModel):
+    """One rubric judge's verdict on a conversation (what you label)."""
+
+    key: str
+    scorer: str
+    rubric_path: str
+    rubric: str
+    judge: JudgeVerdict
+    judge_reasoning: str = ""
+    judge_evidence: str = ""
+
+
+class JudgedConversation(BaseModel):
+    """A conversation with every rubric verdict the judge gave it."""
+
+    key: str
+    sample_id: str
+    epoch: int
+    log: str
+    goal: str = ""
+    description: str = ""
+    transcript: list[TranscriptEntry]
+    verdicts: list[RubricVerdict]
+
+
+def group_by_conversation(items: Iterable[JudgedItem]) -> list[JudgedConversation]:
+    """Group per-rubric items so each conversation appears once, in first-seen order."""
+    groups: dict[str, JudgedConversation] = {}
+    for item in items:
+        group = groups.get(item.conversation)
+        if group is None:
+            group = groups[item.conversation] = JudgedConversation(
+                key=item.conversation,
+                sample_id=item.sample_id,
+                epoch=item.epoch,
+                log=item.log,
+                goal=item.goal,
+                description=item.description,
+                transcript=item.transcript,
+                verdicts=[],
+            )
+        group.verdicts.append(
+            RubricVerdict(
+                key=item.key,
+                scorer=item.scorer,
+                rubric_path=item.rubric_path,
+                rubric=item.rubric,
+                judge=item.judge,
+                judge_reasoning=item.judge_reasoning,
+                judge_evidence=item.judge_evidence,
+            )
+        )
+    for group in groups.values():
+        group.verdicts.sort(key=lambda v: v.scorer)
+    return list(groups.values())
 
 
 def find_logs(paths: Iterable[str | Path]) -> list[Path]:
@@ -76,6 +136,7 @@ def _items_for(sample: EvalSample, log_path: Path, only: str | None) -> list[Jud
         items.append(
             JudgedItem(
                 key=f"{sample.uuid}:{name}",
+                conversation=str(sample.uuid),
                 scorer=name,
                 sample_id=str(sample.id),
                 epoch=sample.epoch,

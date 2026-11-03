@@ -46,19 +46,32 @@ main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); 
 .tool_call .who, .tool_result .who { color: var(--muted); font-family: var(--sans); }
 .tool_result .body { max-height: 220px; overflow: auto; display: block; }
 .error { background: var(--fail-soft); margin-left: 24px; } .error .who { color: var(--fail); }
-aside { display: grid; gap: 16px; align-content: start; position: sticky; top: 76px; }
+aside { display: grid; gap: 12px; align-content: start; position: sticky; top: 76px; max-height: calc(100vh - 96px); overflow: auto; }
 h2 { font-size: 13px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
-.rubric { white-space: pre-wrap; font-size: 14px; }
+.summary { color: var(--muted); font-size: 14px; margin: 0; }
+.verdict-card { cursor: pointer; padding: 12px 14px; }
+.verdict-card.active { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); cursor: default; }
+.verdict-head { display: flex; align-items: center; gap: 8px; }
+.verdict-head .name { font-weight: 600; overflow-wrap: anywhere; }
+.verdict-head .spacer { flex: 1; }
+.chip { font-size: 12px; font-weight: 600; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.chip.pass { color: var(--pass); border-color: var(--pass); background: var(--pass-soft); }
+.chip.fail { color: var(--fail); border-color: var(--fail); background: var(--fail-soft); }
+details { margin: 10px 0; } summary { cursor: pointer; color: var(--muted); font-size: 13px; }
+.rubric { white-space: pre-wrap; font-size: 14px; margin-top: 6px; padding: 8px 10px; background: var(--bg); border-radius: 8px; }
 .choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.choices button { padding: 10px; font-weight: 600; }
+.choices button { padding: 8px; font-weight: 600; }
 .choices button.on[data-label="pass"] { background: var(--pass-soft); border-color: var(--pass); color: var(--pass); }
 .choices button.on[data-label="fail"] { background: var(--fail-soft); border-color: var(--fail); color: var(--fail); }
 .choices button.on[data-label="skip"] { border-color: var(--muted); }
-textarea { width: 100%; min-height: 64px; margin-top: 10px; font: inherit; border: 1px solid var(--line);
+textarea { width: 100%; min-height: 48px; margin-top: 8px; font: inherit; border: 1px solid var(--line);
   border-radius: 8px; padding: 8px; background: var(--bg); color: var(--fg); resize: vertical; }
-.verdict { font-weight: 700; } .verdict.pass { color: var(--pass); } .verdict.fail { color: var(--fail); }
-.hidden-note { color: var(--muted); font-size: 14px; }
-.match { margin-top: 8px; font-size: 14px; }
+.judge { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 14px; }
+.judge p { margin: 4px 0; }
+.judge .label { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.verdict-word { font-weight: 700; } .verdict-word.pass { color: var(--pass); } .verdict-word.fail { color: var(--fail); }
+.hidden-note { color: var(--muted); }
+.match.agree { color: var(--pass); } .match.disagree { color: var(--fail); font-weight: 600; }
 .keys { color: var(--muted); font-size: 13px; display: flex; flex-wrap: wrap; gap: 10px; }
 .empty { padding: 60px 20px; text-align: center; color: var(--muted); }
 </style>
@@ -69,14 +82,16 @@ textarea { width: 100%; min-height: 64px; margin-top: 10px; font: inherit; borde
   <select id="scorer" aria-label="Rubric"></select>
   <span class="progress" id="progress"></span>
   <span class="spacer"></span>
-  <button id="prev" title="Previous (←)">← Prev</button>
-  <button id="next" title="Next (→)">Next →</button>
-  <button id="todo" title="Next unlabelled (U)">Next unlabelled</button>
+  <button id="prev" title="Previous conversation (←)">← Prev</button>
+  <button id="next" title="Next conversation (→)">Next →</button>
+  <button id="todo" title="Next unlabelled verdict (U)">Next unlabelled</button>
 </header>
 <main id="app"><p class="empty">Loading…</p></main>
 <script>
 "use strict";
-let items = [], labels = {}, view = [], index = 0, showJudge = false;
+// One page per conversation. Each rubric the judge scored it on is a row you label.
+let conversations = [], labels = {}, view = [], ci = 0, vi = 0;
+const revealed = new Set();
 const $ = (id) => document.getElementById(id);
 
 function el(tag, cls, text) {
@@ -87,49 +102,58 @@ function el(tag, cls, text) {
 }
 
 async function load() {
-  const data = await (await fetch("/api/items")).json();
-  items = data.items; labels = data.labels;
-  const scorers = [...new Set(items.map((i) => i.scorer))].sort();
+  const data = await (await fetch("/api/conversations")).json();
+  conversations = data.conversations; labels = data.labels;
+  const counts = {};
+  for (const c of conversations) for (const v of c.verdicts) counts[v.scorer] = (counts[v.scorer] || 0) + 1;
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
   const select = $("scorer");
-  select.replaceChildren(el("option", null, "All rubrics"));
-  select.firstChild.value = "";
-  for (const s of scorers) { const o = el("option", null, s); o.value = s; select.append(o); }
+  const all = el("option", null, `All rubrics (${total})`); all.value = "";
+  select.replaceChildren(all);
+  for (const s of Object.keys(counts).sort()) {
+    const o = el("option", null, `${s} (${counts[s]})`); o.value = s; select.append(o);
+  }
   applyFilter();
-  jumpToUnlabelled(0);
+  nextUnlabelled(0, 0);
 }
 
 function applyFilter() {
   const scorer = $("scorer").value;
-  view = items.filter((i) => !scorer || i.scorer === scorer);
-  index = Math.min(index, Math.max(view.length - 1, 0));
+  view = conversations
+    .map((c) => ({ ...c, verdicts: c.verdicts.filter((v) => !scorer || v.scorer === scorer) }))
+    .filter((c) => c.verdicts.length);
+  ci = 0; vi = 0;
 }
 
-function jumpToUnlabelled(from) {
+const isLabelled = (v) => Boolean(labels[v.key]);
+
+function nextUnlabelled(fromConv, fromVerdict) {
   const n = view.length;
-  for (let k = 0; k < n; k++) {
-    const j = (from + k) % n;
-    if (!labels[view[j].key]) { index = j; break; }
+  for (let k = 0; k <= n; k++) {
+    const c = (fromConv + k) % n;
+    const start = k === 0 ? fromVerdict : 0;
+    const j = view[c].verdicts.findIndex((v, idx) => idx >= start && !isLabelled(v));
+    if (j >= 0) { ci = c; vi = j; break; }
   }
   render();
 }
 
 function render() {
-  const done = view.filter((i) => labels[i.key]).length;
-  $("progress").textContent = view.length ? `${index + 1} of ${view.length} · ${done} labelled` : "";
   const app = $("app");
-  if (!view.length) { app.replaceChildren(el("p", "empty", "No judged conversations in these logs.")); return; }
-  const item = view[index];
-  const label = labels[item.key];
-  showJudge = showJudge || Boolean(label);
+  if (!view.length) { $("progress").textContent = ""; app.replaceChildren(el("p", "empty", "No judged conversations in these logs.")); return; }
+  const all = view.flatMap((c) => c.verdicts);
+  const done = all.filter(isLabelled).length;
+  $("progress").textContent = `Conversation ${ci + 1} of ${view.length} · ${done} of ${all.length} verdicts labelled`;
+  const conv = view[ci];
 
   const left = el("section", "card");
   const meta = el("p", "meta");
-  meta.append(el("b", null, item.sample_id), ` · epoch ${item.epoch} · ${item.log}`);
+  meta.append(el("b", null, conv.sample_id), ` · epoch ${conv.epoch} · ${conv.log}`);
   left.append(meta);
-  if (item.description) left.append(el("p", "meta", `Tests: ${item.description}`));
-  if (item.goal) left.append(el("p", "meta", `User wanted: ${item.goal}`));
+  if (conv.description) left.append(el("p", "meta", `Tests: ${conv.description}`));
+  if (conv.goal) left.append(el("p", "meta", `User wanted: ${conv.goal}`));
   const who = { user: "User", assistant: "Assistant", tool_call: "Tool call", tool_result: "Tool result", error: "Error" };
-  for (const e of item.transcript) {
+  for (const e of conv.transcript) {
     const box = el("div", `entry ${e.kind}`);
     box.append(el("span", "who", e.name ? `${who[e.kind]} · ${e.name}` : who[e.kind]));
     box.append(el("span", "body", e.text));
@@ -137,71 +161,112 @@ function render() {
   }
 
   const aside = el("aside");
-  const rubric = el("div", "card");
-  rubric.append(el("h2", null, `Rubric · ${item.scorer}`), el("div", "rubric", item.rubric));
-
-  const decide = el("div", "card");
-  decide.append(el("h2", null, "Your verdict"));
-  const choices = el("div", "choices");
-  for (const [value, text] of [["pass", "Pass  P"], ["fail", "Fail  F"], ["skip", "Skip  S"]]) {
-    const b = el("button", label && label.label === value ? "on" : "", text);
-    b.dataset.label = value;
-    b.onclick = () => save(value);
-    choices.append(b);
-  }
-  const note = el("textarea");
-  note.id = "note"; note.placeholder = "Note (optional): why?"; note.value = label ? label.note : "";
-  decide.append(choices, note);
-
-  const judge = el("div", "card");
-  judge.append(el("h2", null, "Judge"));
-  if (showJudge) {
-    judge.append(el("p", `verdict ${item.judge}`, item.judge.toUpperCase()));
-    if (item.judge_reasoning) judge.append(el("p", null, item.judge_reasoning));
-    if (item.judge_evidence) judge.append(el("p", "meta", `Evidence: “${item.judge_evidence}”`));
-    if (label && label.label !== "skip" && item.judge !== "unreadable") {
-      judge.append(el("p", "match", label.label === item.judge ? "✓ You agree with the judge." : "✗ You disagree with the judge."));
-    }
-  } else {
-    judge.append(el("p", "hidden-note", "Hidden until you label, so it doesn't sway you. Press J to show."));
-  }
+  const intro = el("div", "card");
+  const doneHere = conv.verdicts.filter(isLabelled).length;
+  intro.append(
+    el("h2", null, `Rubrics for this conversation · ${doneHere} of ${conv.verdicts.length} labelled`),
+    el("p", "summary", "For each rubric, decide whether the conversation passes it. The judge's verdict appears once you label."),
+  );
+  aside.append(intro);
+  conv.verdicts.forEach((v, idx) => aside.append(verdictCard(v, idx, idx === vi)));
 
   const keys = el("div", "keys");
-  for (const k of ["P pass", "F fail", "S skip", "← → move", "U next unlabelled", "J show judge"]) {
-    const [key, ...rest] = k.split(" ");
-    const span = el("span"); span.append(el("kbd", null, key), " " + rest.join(" ")); keys.append(span);
+  for (const k of ["P pass", "F fail", "S skip", "↑ ↓ rubric", "← → conversation", "U next unlabelled", "J show judge"]) {
+    const parts = k.split(" "); const last = parts.pop();
+    const span = el("span"); for (const p of parts) span.append(el("kbd", null, p), " "); span.append(last); keys.append(span);
   }
-  aside.append(rubric, decide, judge, keys);
+  aside.append(keys);
   app.replaceChildren(left, aside);
-  window.scrollTo({ top: 0 });
 }
 
-async function save(value) {
-  const item = view[index];
-  const note = $("note") ? $("note").value : "";
+function verdictCard(v, idx, active) {
+  const label = labels[v.key];
+  const card = el("div", `card verdict-card${active ? " active" : ""}`);
+  if (!active) card.onclick = () => { vi = idx; render(); };
+
+  const head = el("div", "verdict-head");
+  head.append(el("span", "name", `${idx + 1}. ${v.scorer}`), el("span", "spacer"));
+  head.append(label ? el("span", `chip ${label.label}`, `You: ${label.label}`) : el("span", "chip", "Not labelled"));
+  card.append(head);
+
+  const details = el("details");
+  details.open = active;
+  details.append(el("summary", null, "Rubric"), el("div", "rubric", v.rubric));
+  card.append(details);
+
+  const choices = el("div", "choices");
+  for (const [value, text] of [["pass", "Pass"], ["fail", "Fail"], ["skip", "Skip"]]) {
+    const b = el("button", label && label.label === value ? "on" : "", text);
+    b.dataset.label = value;
+    b.onclick = (e) => { e.stopPropagation(); vi = idx; save(value); };
+    choices.append(b);
+  }
+  card.append(choices);
+
+  if (active || (label && label.note)) {
+    const note = el("textarea");
+    note.placeholder = "Note (optional): why?";
+    note.value = label ? label.note : "";
+    note.dataset.key = v.key;
+    note.onclick = (e) => e.stopPropagation();
+    note.onchange = () => { if (labels[v.key]) save(labels[v.key].label, idx, false); };
+    card.append(note);
+  }
+
+  const judge = el("div", "judge");
+  if (label || revealed.has(v.key)) {
+    const line = el("p");
+    line.append(el("span", "label", "Judge: "), el("span", `verdict-word ${v.judge}`, v.judge.toUpperCase()));
+    judge.append(line);
+    if (v.judge_reasoning) judge.append(el("p", null, v.judge_reasoning));
+    if (v.judge_evidence) judge.append(el("p", "meta", `Evidence: “${v.judge_evidence}”`));
+    if (label && label.label !== "skip" && v.judge !== "unreadable") {
+      const agree = label.label === v.judge;
+      judge.append(el("p", `match ${agree ? "agree" : "disagree"}`, agree ? "✓ You agree with the judge." : "✗ You disagree with the judge."));
+    }
+  } else {
+    judge.append(el("p", "hidden-note", "Judge's verdict hidden until you label, so it doesn't sway you (J to show)."));
+  }
+  card.append(judge);
+  return card;
+}
+
+async function save(value, idx = vi, advance = true) {
+  const v = view[ci].verdicts[idx];
+  const box = document.querySelector(`textarea[data-key="${CSS.escape(v.key)}"]`);
+  const note = box ? box.value : (labels[v.key] ? labels[v.key].note : "");
   const res = await fetch("/api/labels", {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ key: item.key, label: value, note }),
+    body: JSON.stringify({ key: v.key, label: value, note }),
   });
   if (!res.ok) { alert((await res.json()).error); return; }
-  labels[item.key] = await res.json();
-  showJudge = true;
+  labels[v.key] = await res.json();
+  if (advance) {
+    const next = view[ci].verdicts.findIndex((x, j) => j > idx && !isLabelled(x));
+    if (next >= 0) vi = next;
+  }
   render();
 }
 
-function move(step) { index = (index + step + view.length) % view.length; showJudge = false; render(); }
+function moveConversation(step) { ci = (ci + step + view.length) % view.length; vi = 0; render(); window.scrollTo({ top: 0 }); }
+function moveVerdict(step) { const n = view[ci].verdicts.length; vi = (vi + step + n) % n; render(); }
 
-$("prev").onclick = () => move(-1);
-$("next").onclick = () => move(1);
-$("todo").onclick = () => { showJudge = false; jumpToUnlabelled(index + 1); };
-$("scorer").onchange = () => { index = 0; applyFilter(); jumpToUnlabelled(0); };
+$("prev").onclick = () => moveConversation(-1);
+$("next").onclick = () => moveConversation(1);
+$("todo").onclick = () => { nextUnlabelled(ci, vi + 1); window.scrollTo({ top: 0 }); };
+$("scorer").onchange = () => { applyFilter(); nextUnlabelled(0, 0); };
 document.addEventListener("keydown", (e) => {
-  if (e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.metaKey || e.ctrlKey) return;
-  const actions = { p: () => save("pass"), f: () => save("fail"), s: () => save("skip"),
-    ArrowRight: () => move(1), ArrowLeft: () => move(-1),
-    u: () => { showJudge = false; jumpToUnlabelled(index + 1); }, j: () => { showJudge = !showJudge; render(); } };
+  if (e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT" || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (!view.length) return;
+  const actions = {
+    p: () => save("pass"), f: () => save("fail"), s: () => save("skip"),
+    ArrowRight: () => moveConversation(1), ArrowLeft: () => moveConversation(-1),
+    ArrowDown: () => moveVerdict(1), ArrowUp: () => moveVerdict(-1),
+    u: () => nextUnlabelled(ci, vi + 1),
+    j: () => { const k = view[ci].verdicts[vi].key; revealed.has(k) ? revealed.delete(k) : revealed.add(k); render(); },
+  };
   const action = actions[e.key];
-  if (action && view.length) { e.preventDefault(); action(); }
+  if (action) { e.preventDefault(); action(); }
 });
 load();
 </script>

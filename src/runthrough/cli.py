@@ -120,7 +120,11 @@ def label(
     server = make_server(items, store, port=port)
     url = f"http://127.0.0.1:{server.server_address[1]}"
     done = sum(item.key in store.load() for item in items)
-    typer.echo(f"{len(items)} judged conversations, {done} already labelled.")
+    conversations = len({item.conversation for item in items})
+    typer.echo(
+        f"{conversations} conversations, {len(items)} rubric verdicts to check "
+        f"({done} already labelled)."
+    )
     typer.echo(f"Labelling page: {url}  (labels saved to {labels}; Ctrl+C to stop)")
     if open_browser:
         webbrowser.open(url)

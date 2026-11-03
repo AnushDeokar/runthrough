@@ -10,7 +10,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from runthrough.calibrate.items import JudgedItem
+from runthrough.calibrate.items import JudgedItem, group_by_conversation
 from runthrough.calibrate.labels import Label, LabelStore
 
 
@@ -20,18 +20,19 @@ def make_server(
     """Create (but don't start) the labelling server. Use ``port=0`` for any free port."""
     page = files("runthrough.calibrate").joinpath("ui.html").read_bytes()
     by_key = {item.key: item for item in items}
+    conversations = [c.model_dump() for c in group_by_conversation(items)]
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:
             if self.path in ("/", "/index.html"):
                 self._send(HTTPStatus.OK, page, "text/html; charset=utf-8")
-            elif self.path == "/api/items":
+            elif self.path == "/api/conversations":
                 labels = {
                     key: label.model_dump() for key, label in store.load().items() if key in by_key
                 }
                 self._json(
                     HTTPStatus.OK,
-                    {"items": [item.model_dump() for item in items], "labels": labels},
+                    {"conversations": conversations, "labels": labels},
                 )
             else:
                 self._json(HTTPStatus.NOT_FOUND, {"error": "Not found"})

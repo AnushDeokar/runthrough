@@ -16,6 +16,7 @@ from runthrough.calibrate import (
     agreement_by_scorer,
     cohen_kappa,
     collect_items,
+    group_by_conversation,
     kappa_strength,
 )
 from runthrough.calibrate.labels import LabelValue
@@ -170,6 +171,20 @@ class TestAgreement:
         assert (report.labeled, report.kappa, report.agreement) == (0, None, None)
 
 
+class TestGrouping:
+    def test_one_entry_per_conversation(self, judged_log: Path) -> None:
+        items = collect_items([judged_log])
+        good = next(i for i in items if i.sample_id == "good")
+        extra = good.model_copy(
+            update={"key": f"{good.conversation}:a_rubric", "scorer": "a_rubric"}
+        )
+        groups = group_by_conversation([*items, extra])
+        assert [g.sample_id for g in groups] == [i.sample_id for i in items]
+        first = next(g for g in groups if g.sample_id == "good")
+        assert [v.scorer for v in first.verdicts] == ["a_rubric", "handoff"]
+        assert first.transcript == good.transcript
+
+
 class TestServer:
     def test_page_items_and_labels(self, judged_log: Path, tmp_path: Path) -> None:
         items = collect_items([judged_log])
@@ -181,14 +196,16 @@ class TestServer:
         try:
             with httpx.Client(base_url=base) as client:
                 assert "runthrough · label" in client.get("/").text
-                data = client.get("/api/items").json()
-                assert len(data["items"]) == 2 and data["labels"] == {}
+                data = client.get("/api/conversations").json()
+                assert len(data["conversations"]) == 2 and data["labels"] == {}
+                [verdict] = data["conversations"][0]["verdicts"]
+                assert verdict["scorer"] == "handoff"
 
-                key = data["items"][0]["key"]
+                key = verdict["key"]
                 saved = client.post("/api/labels", json={"key": key, "label": "fail", "note": "n"})
                 assert saved.status_code == 200 and saved.json()["label"] == "fail"
                 assert store.load()[key].note == "n"
-                assert client.get("/api/items").json()["labels"][key]["label"] == "fail"
+                assert client.get("/api/conversations").json()["labels"][key]["label"] == "fail"
 
                 assert (
                     client.post("/api/labels", json={"key": "nope", "label": "pass"}).status_code

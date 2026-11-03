@@ -17,12 +17,19 @@ runthrough label logs/                 # opens a local page; labels go to labels
 runthrough label logs/ --scorer tone   # one rubric at a time
 ```
 
-The page shows one judged conversation at a time: the transcript with tool calls and
-results, the rubric, and buttons for **Pass**, **Fail** and **Skip** (keys `P`, `F`, `S`).
+The page shows one conversation at a time: the transcript with tool calls and results on
+the left, and on the right one row per rubric the judge scored it on. A scenario with three
+rubrics gives one conversation with three rows to label, so the header counts both:
+`Conversation 2 of 3 · 4 of 5 verdicts labelled`. The rubric dropdown filters to the
+conversations (and rows) of one rubric, with the number of verdicts for each.
+
+For each row, read the rubric and press **Pass**, **Fail** or **Skip** (keys `P`, `F`, `S`
+act on the highlighted row, and the next unlabelled row is highlighted after you label).
 Add a note to explain a tricky call.
 
-The judge's verdict stays hidden until you've labelled, so it doesn't sway you; press `J`
-to show it anyway. Use `←` / `→` to move and `U` to jump to the next unlabelled item.
+The judge's verdict on a row stays hidden until you've labelled it, so it doesn't sway you;
+press `J` to show it anyway. Use `↑` / `↓` to move between rubrics, `←` / `→` between
+conversations, and `U` to jump to the next unlabelled verdict.
 
 The page runs on `127.0.0.1` only. Labels are appended to `labels.jsonl` (JSON Lines); if
 you change a label, the latest line wins. Commit the file next to your suite so labels

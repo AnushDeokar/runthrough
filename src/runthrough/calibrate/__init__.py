@@ -7,18 +7,28 @@ from runthrough.calibrate.agreement import (
     cohen_kappa,
     kappa_strength,
 )
-from runthrough.calibrate.items import JudgedItem, collect_items, find_logs
+from runthrough.calibrate.items import (
+    JudgedConversation,
+    JudgedItem,
+    RubricVerdict,
+    collect_items,
+    find_logs,
+    group_by_conversation,
+)
 from runthrough.calibrate.labels import Label, LabelStore
 
 __all__ = [
     "Agreement",
     "Disagreement",
+    "JudgedConversation",
     "JudgedItem",
     "Label",
     "LabelStore",
+    "RubricVerdict",
     "agreement_by_scorer",
     "cohen_kappa",
     "collect_items",
     "find_logs",
+    "group_by_conversation",
     "kappa_strength",
 ]
